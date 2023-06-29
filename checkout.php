@@ -22,41 +22,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
     }
 }
 
-include("connection/connect.php");
-include_once 'product-action.php';
-error_reporting(0);
+// Function to encrypt data using AES
+function encrypt($data)
+{
+    $key = bin2hex(random_bytes(32)); // Replace with your own encryption key
+    $cipher = "aes-256-cbc";
+    $options = OPENSSL_RAW_DATA;
+    $iv_length = openssl_cipher_iv_length($cipher);
+    $iv = openssl_random_pseudo_bytes($iv_length);
+    $encrypted = openssl_encrypt($data, $cipher, $key, $options, $iv);
+    $result = base64_encode($iv . $encrypted);
+    return $result;
+}
+
+// Function to decrypt data using AES
+function decrypt($data)
+{
+    $key = bin2hex(random_bytes(32)); // Replace with your own encryption key
+    $cipher = "aes-256-cbc";
+    $options = OPENSSL_RAW_DATA;
+    $iv_length = openssl_cipher_iv_length($cipher);
+    $decoded = base64_decode($data);
+    $iv = substr($decoded, 0, $iv_length);
+    $encrypted_payload = substr($decoded, $iv_length);
+    $result = openssl_decrypt($encrypted_payload, $cipher, $key, $options, $iv);
+    return $result;
+}
 
 function function_alert()
-{     
+{
     echo "<script>alert('Thank you. Your Order has been placed!');</script>";
     echo "<script>window.location.replace('your_orders.php');</script>";
 }
 
-if (empty($_SESSION["user_id"]))
-{
+if (empty($_SESSION["user_id"])) {
     header('location:login.php');
-}
-else
-{
-    foreach ($_SESSION["cart_item"] as $item)
-    {
+} else {
+    $item_total = 0;
+
+    foreach ($_SESSION["cart_item"] as $item) {
         $item_total += ($item["price"] * $item["quantity"]);
+    }
 
-        if ($_POST['submit'])
-        {
-            $SQL = "insert into users_orders(u_id,title,quantity,price) values('" . $_SESSION["user_id"] . "','" . $item["title"] . "','" . $item["quantity"] . "','" . $item["price"] . "')";
-            mysqli_query($db, $SQL);
+    if (isset($_POST['submit'])) {
+        // Get the credit card information from the form
+        $card_number = $_POST["card_number"];
+        $card_holder = $_POST["card_holder"];
+        $expiry_date = $_POST["expiry_date"];
+        $cvv = $_POST["cvv"];
 
+        // Encrypt the credit card information
+        $encrypted_card_number = encrypt($card_number);
+        $encrypted_card_holder = encrypt($card_holder);
+        $encrypted_expiry_date = encrypt($expiry_date);
+        $encrypted_cvv = encrypt($cvv);
+
+        // Insert the encrypted credit card information into the database
+        $query = "INSERT INTO credit_cards (user_id, card_number, card_holder, expiry_date, cvv) 
+                  VALUES ('" . $_SESSION["user_id"] . "', 
+                          '" . $encrypted_card_number . "', 
+                          '" . $encrypted_card_holder . "', 
+                          '" . $encrypted_expiry_date . "', 
+                          '" . $encrypted_cvv . "')";
+
+        if (mysqli_query($db, $query)) {
             unset($_SESSION["cart_item"]);
-            unset($item["title"]);
-            unset($item["quantity"]);
-            unset($item["price"]);
             $success = "Thank you. Your order has been placed!";
             function_alert();
+        } else {
+            echo "Error: " . $query . "<br>" . mysqli_error($db);
         }
     }
 }
 ?>
+
 
 <head>
     <meta charset="utf-8">

@@ -67,6 +67,19 @@
 include("connection/connect.php"); 
 error_reporting(0); 
 session_start(); 
+
+// Content Security Policy (CSP) header
+header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';");
+
+// Validate and sanitize user input
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Validate and sanitize input fields
+    $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING);
+    $password = filter_input(INPUT_POST, 'password', FILTER_SANITIZE_STRING);
+
+    // Perform further validation and processing as needed
+    // ...
+}
 if(isset($_POST['submit']))  
 {
 	$username = $_POST['username'];  

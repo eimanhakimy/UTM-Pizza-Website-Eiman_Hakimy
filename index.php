@@ -5,6 +5,9 @@ include("connection/connect.php");
 error_reporting(0);  
 session_start(); 
 
+// Content Security Policy (CSP) header
+header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';");
+
 ?>
 
 
@@ -266,8 +269,7 @@ session_start();
 						?>
 
 
-            
-
+        
 
                 </div>
             </div>
